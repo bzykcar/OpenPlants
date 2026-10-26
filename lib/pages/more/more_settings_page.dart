@@ -89,6 +89,7 @@ class MoreSettingsPage extends StatelessWidget {
                           'en' => context.l10n.languageEnglish,
                           'de' => context.l10n.languageGerman,
                           'es' => context.l10n.languageSpanish,
+                          'pl' => context.l10n.languagePolish,
                           _ => locale.languageCode,
                         },
                       ),
