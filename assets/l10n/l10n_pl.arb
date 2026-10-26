@@ -694,5 +694,10 @@
   "aiTestConnection": "Testuj połączenie",
   "aiTestOk": "Połączenie działa!",
   "aiSettingsSaved": "Zapisano ustawienia AI",
-  "aiAskAi": "Zapytaj AI (ze zdjęciem)"
+  "aiAskAi": "Zapytaj AI (ze zdjęciem)",
+  "aiIdentifySpecies": "Rozpoznaj gatunek przez AI",
+  "aiIdentifying": "AI rozpoznaje…",
+  "aiSpeciesUnknown": "AI nie rozpoznało tej rośliny",
+  "aiSpeciesConfidence": "Pewność: {level}",
+  "roomNone": "Bez pomieszczenia"
 }

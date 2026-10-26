@@ -53,7 +53,9 @@ jobs:
 
       - name: Analyze (informational)
         continue-on-error: true
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings > analyze.txt 2>&1 || true
+          tail -n 40 analyze.txt
 
       - name: Cache plant-identification model
         id: model-cache
@@ -107,6 +109,29 @@ jobs:
       - name: Rename APK
         run: cp build/app/outputs/flutter-apk/app-release.apk OpenPlants-AI-${{ github.run_number }}.apk
 
+      - name: Write build report
+        run: |
+          {
+            echo "Automatyczna kompilacja z commita ${{ github.sha }}."
+            echo "Pobierz plik .apk poniżej i zainstaluj na telefonie."
+            echo
+            echo "<details><summary>Raport techniczny</summary>"
+            echo
+            echo '```'
+            echo "== model files =="
+            ls -la assets/ml/plant-identification
+            echo "== ml assets inside APK =="
+            unzip -l OpenPlants-AI-${{ github.run_number }}.apk | grep -i "plant-identification" || echo "NONE"
+            echo "== onnx native libs =="
+            unzip -l OpenPlants-AI-${{ github.run_number }}.apk | grep -i "onnx" | grep "\.so" || echo "NONE"
+            echo "== analyze (errors/warnings) =="
+            grep -E "error|warning" analyze.txt | head -n 60 || true
+            tail -n 3 analyze.txt
+            echo '```'
+            echo "</details>"
+          } > release-notes.md
+          cat release-notes.md
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -119,8 +144,6 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: OpenPlants AI build ${{ github.run_number }}
-          body: |
-            Automatyczna kompilacja z commita ${{ github.sha }}.
-            Pobierz plik .apk poniżej i zainstaluj na telefonie.
+          body_path: release-notes.md
           files: OpenPlants-AI-${{ github.run_number }}.apk
           make_latest: true

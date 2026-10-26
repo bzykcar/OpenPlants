@@ -67,6 +67,53 @@ class AiDiagnosisRequest {
   });
 }
 
+/// Species identified by the cloud model.
+class AiSpeciesResult {
+  final String scientific;
+  final String common;
+  final String confidence;
+  final String note;
+
+  const AiSpeciesResult({
+    required this.scientific,
+    required this.common,
+    required this.confidence,
+    required this.note,
+  });
+
+  bool get isEmpty => scientific.isEmpty && common.isEmpty;
+
+  /// Text for the species field, e.g. "Peperomia obtusifolia (Peperomia tępolistna)".
+  String get speciesLabel {
+    if (scientific.isEmpty) return common;
+    if (common.isEmpty || common.toLowerCase() == scientific.toLowerCase()) return scientific;
+    return '$scientific ($common)';
+  }
+
+  static AiSpeciesResult parse(String raw) {
+    final start = raw.indexOf('{');
+    final end = raw.lastIndexOf('}');
+    if (start >= 0 && end > start) {
+      try {
+        final value = jsonDecode(raw.substring(start, end + 1));
+        if (value is Map) {
+          String field(String key) => (value[key] is String) ? (value[key] as String).trim() : '';
+          return AiSpeciesResult(
+            scientific: field('scientific'),
+            common: field('common'),
+            confidence: field('confidence'),
+            note: field('note'),
+          );
+        }
+      } catch (_) {
+        // Fall through to the plain-text fallback below.
+      }
+    }
+    final firstLine = raw.trim().split('\n').first.trim();
+    return AiSpeciesResult(scientific: firstLine, common: '', confidence: '', note: '');
+  }
+}
+
 /// Sends a plant photo plus context to Gemini or Claude and returns the diagnosis text.
 ///
 /// Uses `dart:io` [HttpClient] directly so no extra package is needed.
@@ -126,6 +173,32 @@ class AiDiagnosisService {
       AiProvider.gemini => _callGemini(trimmedKey, effectiveModel, prompt, null),
       AiProvider.claude => _callClaude(trimmedKey, effectiveModel, prompt, null),
     };
+  }
+
+  /// Identifies the plant species in [imageJpeg]. Uses the app language for the common name.
+  Future<AiSpeciesResult> identifySpecies({
+    required AiProvider provider,
+    required String apiKey,
+    required Uint8List imageJpeg,
+    required String languageCode,
+    String? model,
+  }) async {
+    final trimmedKey = apiKey.trim();
+    if (trimmedKey.isEmpty) throw const AiDiagnosisException('Brak klucza API.');
+    final effectiveModel = (model == null || model.trim().isEmpty) ? provider.defaultModel : model.trim();
+    final language = _languageName(languageCode);
+    final prompt = 'Identify the plant in the photo. Reply with ONLY a JSON object, no markdown, with keys: '
+        '"scientific" (Latin binomial, plus cultivar in quotes if clearly visible, e.g. "Peperomia obtusifolia \'Variegata\'"), '
+        '"common" (the most common $language name, or empty string if none), '
+        '"confidence" ("high", "medium" or "low"), '
+        '"note" (one short $language sentence: key care tip and toxicity to pets/children if relevant). '
+        'If the photo does not show a plant, return {"scientific":"","common":"","confidence":"low","note":"<explain in $language>"}.';
+
+    final raw = await switch (provider) {
+      AiProvider.gemini => _callGemini(trimmedKey, effectiveModel, prompt, imageJpeg),
+      AiProvider.claude => _callClaude(trimmedKey, effectiveModel, prompt, imageJpeg),
+    };
+    return AiSpeciesResult.parse(raw);
   }
 
   /// Builds the instruction text sent alongside the photo.

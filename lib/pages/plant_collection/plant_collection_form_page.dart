@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:openplants/core/app_scope.dart';
 import 'package:openplants/core/constants.dart';
 import 'package:openplants/l10n/l10n_x.dart';
+import 'package:openplants/pages/ai_diagnosis/ai_diagnosis_service.dart';
+import 'package:openplants/pages/ai_diagnosis/ai_settings_page.dart';
 import 'package:openplants/pages/plant_collection/plant_collection_item_entity.dart';
 import 'package:openplants/pages/plant_collection/plant_collection_usecases.dart';
 import 'package:openplants/pages/plant_identification/classifier/classification_result.dart';
@@ -49,6 +51,9 @@ class _PlantCollectionFormPageState extends State<PlantCollectionFormPage> {
   PhotoIdentificationState _photoIdentificationState = PhotoIdentificationState.idle;
   List<SpeciesPrediction> _identificationResults = [];
   String? _identifyingPhotoPath;
+  String? _identificationError;
+  bool _aiIdentifying = false;
+  AiSpeciesResult? _aiSpecies;
 
   List<RoomEntity> _rooms = [];
 
@@ -147,6 +152,8 @@ class _PlantCollectionFormPageState extends State<PlantCollectionFormPage> {
 
     setState(() {
       _photoIdentificationState = PhotoIdentificationState.identifying;
+      _identificationError = null;
+      _aiSpecies = null;
     });
 
     try {
@@ -168,6 +175,7 @@ class _PlantCollectionFormPageState extends State<PlantCollectionFormPage> {
       debugPrint('Identification failed: $e');
       setState(() {
         _photoIdentificationState = PhotoIdentificationState.error;
+        _identificationError = e.toString();
       });
     }
   }
@@ -314,6 +322,57 @@ class _PlantCollectionFormPageState extends State<PlantCollectionFormPage> {
                       ),
                 ),
               ),
+              if (_identificationError != null)
+                SelectableText(
+                  _identificationError!,
+                  maxLines: 4,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              const SizedBox(height: 16),
+            ],
+
+            // Cloud AI species identification
+            if (_photoFile != null || _existingPhotoPath != null) ...[
+              OutlinedButton.icon(
+                onPressed: _aiIdentifying ? null : _identifyWithAi,
+                icon: _aiIdentifying
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.auto_awesome),
+                label: Text(_aiIdentifying ? context.l10n.aiIdentifying : context.l10n.aiIdentifySpecies),
+              ),
+              if (_aiSpecies != null) ...[
+                const SizedBox(height: 8),
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _aiSpecies!.isEmpty ? context.l10n.aiSpeciesUnknown : _aiSpecies!.speciesLabel,
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        if (_aiSpecies!.confidence.isNotEmpty)
+                          Text(
+                            context.l10n.aiSpeciesConfidence(
+                              switch (_aiSpecies!.confidence.toLowerCase()) {
+                                'high' => context.l10n.diagnosisConfidenceHigh,
+                                'medium' => context.l10n.diagnosisConfidenceMedium,
+                                'low' => context.l10n.diagnosisConfidenceLow,
+                                _ => _aiSpecies!.confidence,
+                              },
+                            ),
+                            style: theme.textTheme.bodySmall,
+                          ),
+                        if (_aiSpecies!.note.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Text(_aiSpecies!.note, style: theme.textTheme.bodyMedium),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
             ],
 
@@ -338,8 +397,8 @@ class _PlantCollectionFormPageState extends State<PlantCollectionFormPage> {
                 border: const OutlineInputBorder(),
               ),
               items: [
-                const DropdownMenuItem<String?>(
-                  child: Text('No room'),
+                DropdownMenuItem<String?>(
+                  child: Text(context.l10n.roomNone),
                 ),
                 ..._rooms.map(
                   (room) => DropdownMenuItem<String?>(
@@ -347,9 +406,9 @@ class _PlantCollectionFormPageState extends State<PlantCollectionFormPage> {
                     child: Text(room.name),
                   ),
                 ),
-                const DropdownMenuItem<String?>(
+                DropdownMenuItem<String?>(
                   value: kNewRoomSentinel,
-                  child: Text('+ New Room'),
+                  child: Text('+ ${context.l10n.roomFormTitleNew}'),
                 ),
               ],
               onChanged: (value) async {
@@ -530,6 +589,53 @@ class _PlantCollectionFormPageState extends State<PlantCollectionFormPage> {
       _photoIdentificationState = PhotoIdentificationState.idle;
       _identificationResults = [];
     });
+  }
+
+  Future<void> _identifyWithAi() async {
+    final photoPath = _photoFile?.path ?? _existingPhotoPath;
+    if (photoPath == null) return;
+
+    var settings = AppScope.of(context).settings.settings;
+    if (AiProviderX.fromId(settings.aiProvider) == null || (settings.aiApiKey ?? '').isEmpty) {
+      await Navigator.of(context).push(MaterialPageRoute<bool>(builder: (_) => const AiSettingsPage()));
+      if (!mounted) return;
+      settings = AppScope.of(context).settings.settings;
+    }
+    final provider = AiProviderX.fromId(settings.aiProvider);
+    final apiKey = settings.aiApiKey;
+    if (provider == null || apiKey == null || apiKey.isEmpty) return;
+
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _aiIdentifying = true);
+    try {
+      final image = await AiDiagnosisService.prepareImage(photoPath);
+      final result = await const AiDiagnosisService().identifySpecies(
+        provider: provider,
+        apiKey: apiKey,
+        model: settings.aiModel,
+        imageJpeg: image,
+        languageCode: languageCode,
+      );
+      if (!mounted) return;
+      setState(() {
+        _aiSpecies = result;
+        if (!result.isEmpty) {
+          _speciesController.text = result.speciesLabel;
+          if (_nameController.text.trim().isEmpty) {
+            _nameController.text = result.common.isNotEmpty ? result.common : result.scientific;
+          }
+          _photoIdentificationState = PhotoIdentificationState.idle;
+          _identificationResults = [];
+        }
+      });
+    } on AiDiagnosisException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message), duration: const Duration(seconds: 6)));
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) setState(() => _aiIdentifying = false);
+    }
   }
 
   void _onSkipIdentification() {

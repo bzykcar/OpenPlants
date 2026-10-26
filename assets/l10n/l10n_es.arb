@@ -882,5 +882,10 @@
   "aiTestConnection": "Test connection",
   "aiTestOk": "Connection works!",
   "aiSettingsSaved": "AI settings saved",
-  "aiAskAi": "Ask AI with a photo"
+  "aiAskAi": "Ask AI with a photo",
+  "aiIdentifySpecies": "Identify species with AI",
+  "aiIdentifying": "Identifying with AI…",
+  "aiSpeciesUnknown": "AI could not identify this plant",
+  "aiSpeciesConfidence": "Confidence: {level}",
+  "roomNone": "Sin habitación"
 }
