@@ -915,5 +915,20 @@
       }
     }
   },
-  "roomNone": "No room"
+  "roomNone": "No room",
+  "aiCarePlanButton": "Suggest care schedule with AI",
+  "aiCarePlanLoading": "AI is preparing a schedule…",
+  "aiCarePlanTitle": "AI care plan",
+  "aiCarePlanEvery": "every {days} days",
+  "@aiCarePlanEvery": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "aiCarePlanSkip": "not now",
+  "aiCarePlanHint": "Intervals are for the current season. They will be saved as care rules with reminders at 9:00; you can change them any time.",
+  "aiCarePlanApply": "Save as rules",
+  "aiCarePlanApplied": "Care schedule saved"
 }

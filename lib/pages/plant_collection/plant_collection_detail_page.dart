@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:openplants/core/app_scope.dart';
 import 'package:openplants/core/date_utils.dart';
 import 'package:openplants/l10n/l10n_x.dart';
+import 'package:openplants/pages/ai_diagnosis/ai_care_plan_button.dart';
 import 'package:openplants/pages/plant_collection/plant_collection_form_page.dart';
 import 'package:openplants/pages/plant_collection/plant_collection_item_entity.dart';
 import 'package:openplants/pages/plant_collection/plant_collection_usecases.dart';
@@ -645,6 +646,14 @@ class _PlantCollectionDetailPageState extends State<PlantCollectionDetailPage> {
             plantId: _plant.id,
             usecases: _careRuleUsecases,
             careScheduleUsecases: _careScheduleUsecases,
+          ),
+          const SizedBox(height: 8),
+          AiCarePlanButton(
+            plant: _plant,
+            roomName: _roomName,
+            onApplied: () {
+              if (mounted) setState(() {});
+            },
           ),
           const SizedBox(height: 24),
 

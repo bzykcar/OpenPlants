@@ -699,5 +699,13 @@
   "aiIdentifying": "AI rozpoznaje…",
   "aiSpeciesUnknown": "AI nie rozpoznało tej rośliny",
   "aiSpeciesConfidence": "Pewność: {level}",
-  "roomNone": "Bez pomieszczenia"
+  "roomNone": "Bez pomieszczenia",
+  "aiCarePlanButton": "Ułóż plan pielęgnacji z AI",
+  "aiCarePlanLoading": "AI układa plan…",
+  "aiCarePlanTitle": "Plan pielęgnacji AI",
+  "aiCarePlanEvery": "co {days} dni",
+  "aiCarePlanSkip": "teraz nie",
+  "aiCarePlanHint": "Odstępy dotyczą obecnej pory roku. Zostaną zapisane jako reguły pielęgnacji z przypomnieniem o 9:00 — możesz je w każdej chwili zmienić.",
+  "aiCarePlanApply": "Zapisz jako reguły",
+  "aiCarePlanApplied": "Zapisano plan pielęgnacji"
 }

@@ -67,6 +67,63 @@ class AiDiagnosisRequest {
   });
 }
 
+/// Care schedule suggested by the cloud model. Intervals are in days; 0 means "skip".
+class AiCarePlan {
+  final String species;
+  final int wateringDays;
+  final int fertilizingDays;
+  final int mistingDays;
+  final int repottingDays;
+  final String summary;
+
+  const AiCarePlan({
+    required this.species,
+    required this.wateringDays,
+    required this.fertilizingDays,
+    required this.mistingDays,
+    required this.repottingDays,
+    required this.summary,
+  });
+
+  static AiCarePlan parse(String raw) {
+    final start = raw.indexOf('{');
+    final end = raw.lastIndexOf('}');
+    if (start < 0 || end <= start) {
+      throw const AiDiagnosisException('AI nie zwróciło planu w oczekiwanym formacie. Spróbuj ponownie.');
+    }
+    final Object? value;
+    try {
+      value = jsonDecode(raw.substring(start, end + 1));
+    } catch (_) {
+      throw const AiDiagnosisException('AI nie zwróciło planu w oczekiwanym formacie. Spróbuj ponownie.');
+    }
+    if (value is! Map) {
+      throw const AiDiagnosisException('AI nie zwróciło planu w oczekiwanym formacie. Spróbuj ponownie.');
+    }
+
+    final Map<dynamic, dynamic> map = value;
+
+    int days(String key, {required int max}) {
+      final v = map[key];
+      final n = v is num ? v.round() : int.tryParse('$v') ?? 0;
+      return n < 0 ? 0 : (n > max ? max : n);
+    }
+
+    final watering = days('watering_days', max: 60);
+    if (watering <= 0) {
+      throw const AiDiagnosisException('AI nie podało częstotliwości podlewania. Spróbuj ponownie.');
+    }
+    return AiCarePlan(
+      species: map['species'] is String ? (map['species'] as String).trim() : '',
+      wateringDays: watering,
+      fertilizingDays: days('fertilizing_days', max: 180),
+      mistingDays: days('misting_days', max: 60),
+      repottingDays: days('repotting_days', max: 1460),
+      summary: map['summary'] is String ? (map['summary'] as String).trim() : '',
+    );
+  }
+}
+
 /// Species identified by the cloud model.
 class AiSpeciesResult {
   final String scientific;
@@ -199,6 +256,59 @@ class AiDiagnosisService {
       AiProvider.claude => _callClaude(trimmedKey, effectiveModel, prompt, imageJpeg),
     };
     return AiSpeciesResult.parse(raw);
+  }
+
+  /// Asks the model for a care schedule (intervals in days) for the current season.
+  Future<AiCarePlan> suggestCarePlan({
+    required AiProvider provider,
+    required String apiKey,
+    required String languageCode,
+    String? speciesName,
+    String? plantName,
+    String? room,
+    String? lightLevel,
+    Uint8List? imageJpeg,
+    String? model,
+  }) async {
+    final trimmedKey = apiKey.trim();
+    if (trimmedKey.isEmpty) throw const AiDiagnosisException('Brak klucza API.');
+    final effectiveModel = (model == null || model.trim().isEmpty) ? provider.defaultModel : model.trim();
+    final language = _languageName(languageCode);
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June', //
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    final month = months[DateTime.now().month - 1];
+
+    final context = StringBuffer();
+    void line(String label, String? value) {
+      if (value != null && value.trim().isNotEmpty) context.writeln('- $label: ${value.trim()}');
+    }
+
+    line('Species', speciesName);
+    line('Plant name given by owner', plantName);
+    line('Room', room);
+    line('Light level at its spot', lightLevel);
+    line('Current month', '$month (Central Europe, indoor, heated home)');
+
+    final prompt = 'You are a houseplant care expert. Build a care schedule for this indoor plant.\n'
+        '${imageJpeg != null ? 'A photo of the plant is attached; use it to identify the species if unknown.\n' : ''}'
+        '$context\n'
+        'Reply with ONLY a JSON object, no markdown, with keys:\n'
+        '"species" (Latin name you assumed),\n'
+        '"watering_days" (integer, typical interval for the CURRENT season),\n'
+        '"fertilizing_days" (integer, 0 if the plant should not be fertilized in the current season),\n'
+        '"misting_days" (integer, 0 if misting is not recommended),\n'
+        '"repotting_days" (integer, typical interval, e.g. 365 or 730),\n'
+        '"summary" ($language, 3-5 short sentences: how to check if it needs water, how the schedule '
+        'changes between summer and winter, fertilizer type, one common mistake to avoid).\n'
+        'Be conservative with watering: overwatering is the most common cause of houseplant death.';
+
+    final raw = await switch (provider) {
+      AiProvider.gemini => _callGemini(trimmedKey, effectiveModel, prompt, imageJpeg),
+      AiProvider.claude => _callClaude(trimmedKey, effectiveModel, prompt, imageJpeg),
+    };
+    return AiCarePlan.parse(raw);
   }
 
   /// Builds the instruction text sent alongside the photo.
