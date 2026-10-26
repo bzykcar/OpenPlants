@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import 'package:openplants/core/app_scope.dart';
+import 'package:openplants/pages/ai_diagnosis/ai_diagnosis_page.dart';
 import 'package:openplants/l10n/l10n_x.dart';
 import 'package:openplants/pages/home/widgets/page_navigation_animation.dart';
 import 'package:openplants/pages/more/more_about_page.dart';
@@ -100,6 +101,9 @@ class _MorePageState extends State<MorePage> with AutomaticKeepAliveClientMixin<
         break;
       case 'diagnosis':
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiagnosisPage()));
+        break;
+      case 'ai_diagnosis':
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiDiagnosisPage()));
         break;
       default:
         break;
@@ -228,6 +232,8 @@ class _MorePageState extends State<MorePage> with AutomaticKeepAliveClientMixin<
           return context.l10n.moreLogSymptomTitle;
         case 'diagnosis':
           return context.l10n.moreDiagnosisTitle;
+        case 'ai_diagnosis':
+          return context.l10n.aiDiagnosisTitle;
         case 'notifications':
           return context.l10n.moreNotificationsTitle;
         case 'settings':
@@ -251,6 +257,8 @@ class _MorePageState extends State<MorePage> with AutomaticKeepAliveClientMixin<
           return context.l10n.moreLogSymptomSubtitle;
         case 'diagnosis':
           return context.l10n.moreDiagnosisSubtitle;
+        case 'ai_diagnosis':
+          return context.l10n.aiDiagnosisSubtitle;
         case 'notifications':
           return context.l10n.moreNotificationsSubtitle;
         case 'settings':

@@ -56,6 +56,15 @@ class Settings {
   final bool notifyDueTasks;
   final bool notifyOverdueTasks;
 
+  /// AI diagnosis provider: `gemini`, `claude`, or null when AI is not configured.
+  final String? aiProvider;
+
+  /// API key for the selected AI provider. Stored locally on the device only.
+  final String? aiApiKey;
+
+  /// Optional model override. When null or empty, the provider default is used.
+  final String? aiModel;
+
   const Settings({
     this.useSystemDarkmode = true,
     this.useDarkmode = false,
@@ -66,6 +75,9 @@ class Settings {
     this.notificationsEnabled = true,
     this.notifyDueTasks = true,
     this.notifyOverdueTasks = true,
+    this.aiProvider,
+    this.aiApiKey,
+    this.aiModel,
   });
 
   Settings copyWith({
@@ -78,6 +90,9 @@ class Settings {
     bool? notificationsEnabled,
     bool? notifyDueTasks,
     bool? notifyOverdueTasks,
+    Object? aiProvider = _noChange,
+    Object? aiApiKey = _noChange,
+    Object? aiModel = _noChange,
   }) {
     return Settings(
       useSystemDarkmode: useSystemDarkmode ?? this.useSystemDarkmode,
@@ -89,6 +104,9 @@ class Settings {
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       notifyDueTasks: notifyDueTasks ?? this.notifyDueTasks,
       notifyOverdueTasks: notifyOverdueTasks ?? this.notifyOverdueTasks,
+      aiProvider: identical(aiProvider, _noChange) ? this.aiProvider : aiProvider as String?,
+      aiApiKey: identical(aiApiKey, _noChange) ? this.aiApiKey : aiApiKey as String?,
+      aiModel: identical(aiModel, _noChange) ? this.aiModel : aiModel as String?,
     );
   }
 
@@ -103,6 +121,9 @@ class Settings {
       notificationsEnabled: json['notificationsEnabled'] ?? true,
       notifyDueTasks: json['notifyDueTasks'] ?? true,
       notifyOverdueTasks: json['notifyOverdueTasks'] ?? true,
+      aiProvider: json['aiProvider'] as String?,
+      aiApiKey: json['aiApiKey'] as String?,
+      aiModel: json['aiModel'] as String?,
     );
   }
 
@@ -117,6 +138,9 @@ class Settings {
       'notificationsEnabled': notificationsEnabled,
       'notifyDueTasks': notifyDueTasks,
       'notifyOverdueTasks': notifyOverdueTasks,
+      'aiProvider': aiProvider,
+      'aiApiKey': aiApiKey,
+      'aiModel': aiModel,
     };
   }
 }

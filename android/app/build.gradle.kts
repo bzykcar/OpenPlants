@@ -42,7 +42,8 @@ android {
     
     defaultConfig {
         // Application ID: https://developer.android.com/studio/build/application-id.html
-        applicationId = "com.domai_tb.openplants"
+        // ".ai" suffix lets this fork be installed next to the official OpenPlants app.
+        applicationId = "com.domai_tb.openplants.ai"
         
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.

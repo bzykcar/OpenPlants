@@ -6,6 +6,7 @@ class MoreDataSource {
         MoreItemEntity(id: 'rooms'),
         MoreItemEntity(id: 'light_assessment'),
         MoreItemEntity(id: 'log_symptom'),
+        MoreItemEntity(id: 'ai_diagnosis'),
         MoreItemEntity(id: 'diagnosis'),
         MoreItemEntity(id: 'notifications'),
         MoreItemEntity(id: 'settings'),

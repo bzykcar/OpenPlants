@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:openplants/core/app_scope.dart';
 import 'package:openplants/l10n/l10n.dart';
 import 'package:openplants/l10n/l10n_x.dart';
+import 'package:openplants/pages/ai_diagnosis/ai_diagnosis_page.dart';
 import 'package:openplants/pages/diagnosis/diagnosis_item_entity.dart';
 import 'package:openplants/pages/diagnosis/diagnosis_page.dart';
 import 'package:openplants/pages/diagnosis/diagnosis_result_entity.dart';
@@ -150,6 +151,8 @@ class _DiagnosisResultPageState extends State<DiagnosisResultPage> {
         ],
         ...rankedCauses.map((cause) => _buildCauseCard(context, theme, cause)),
         const SizedBox(height: 8),
+        _buildAskAiButton(context),
+        const SizedBox(height: 8),
         _buildRestartButton(context, label: context.l10n.diagnosisStartOver),
       ],
     );
@@ -217,6 +220,8 @@ class _DiagnosisResultPageState extends State<DiagnosisResultPage> {
           ),
         ),
         const SizedBox(height: 24),
+        _buildAskAiButton(context),
+        const SizedBox(height: 8),
         _buildRestartButton(context, label: l10n.diagnosisTryAgain),
       ],
     );
@@ -250,6 +255,32 @@ class _DiagnosisResultPageState extends State<DiagnosisResultPage> {
         const SizedBox(width: 8),
         Expanded(child: Text(title, style: theme.textTheme.headlineSmall)),
       ],
+    );
+  }
+
+  Widget _buildAskAiButton(BuildContext context) {
+    final causes = _effectiveResult.causes
+        .map((cause) => '${cause.causeId} (confidence: ${cause.confidence.name})')
+        .join(', ');
+    final symptoms = widget.entity?.plantSymptoms.map((symptom) => symptom.name).join(', ');
+    final summary = [
+      if (symptoms != null && symptoms.isNotEmpty) 'reported symptoms: $symptoms',
+      if (causes.isNotEmpty) 'suggested causes: $causes',
+    ].join('; ');
+
+    return FilledButton.icon(
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => AiDiagnosisPage(
+              plantId: widget.entity?.plantId,
+              questionnaireSummary: summary.isEmpty ? null : summary,
+            ),
+          ),
+        );
+      },
+      icon: const Icon(Icons.auto_awesome),
+      label: Text(context.l10n.aiAskAi),
     );
   }
 

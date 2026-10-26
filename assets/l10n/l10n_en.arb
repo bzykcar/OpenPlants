@@ -849,5 +849,59 @@
         "type": "String"
       }
     }
-  }
+  },
+  "aiDiagnosisTitle": "AI Diagnosis",
+  "aiDiagnosisSubtitle": "Diagnose from a photo with AI (needs internet)",
+  "aiSettingsTitle": "AI Settings",
+  "aiNotConfigured": "AI is not set up yet. Add an API key for Gemini or Claude to start.",
+  "aiOpenSettings": "Set up AI",
+  "aiPrivacyNote": "The photo and description are sent to {provider}. Everything else stays on this device.",
+  "@aiPrivacyNote": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiSelectPlant": "Plant (optional)",
+  "aiNoPlant": "No plant selected",
+  "aiPhoto": "Photo",
+  "aiUsingPlantPhoto": "Using the plant's main photo. Take a close-up of the sick part for better results.",
+  "aiNoPhoto": "No photo yet. Take a close-up of the affected leaves or stem.",
+  "aiDescriptionLabel": "What's wrong? (optional)",
+  "aiDescriptionHint": "e.g. leaves turning yellow for a week, I water every 3 days",
+  "aiAnalyze": "Analyze with AI",
+  "aiAnalyzing": "Analyzing… this can take up to a minute",
+  "aiResultTitle": "AI assessment",
+  "aiDisclaimer": "AI can be wrong. Treat this as a hint, not a final diagnosis.",
+  "aiSaveToJournal": "Save to plant journal",
+  "aiSavedToJournal": "Saved to journal",
+  "aiJournalHeader": "AI diagnosis ({provider})",
+  "@aiJournalHeader": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "aiNeedPhotoOrText": "Add a photo or describe the problem.",
+  "aiProviderLabel": "AI provider",
+  "aiProviderGeminiNote": "Has a free tier. On the free tier Google may use the data you send to improve its products.",
+  "aiProviderClaudeNote": "Paid per request (a few cents). Data is not used for model training by default.",
+  "aiApiKeyLabel": "API key",
+  "aiApiKeyHelp": "Get a key here:",
+  "aiKeyStoredLocally": "The key is stored only on this device. Leave it empty and save to turn AI off.",
+  "aiModelLabel": "Model (optional)",
+  "aiModelHint": "Default: {model}",
+  "@aiModelHint": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
+  "aiTestConnection": "Test connection",
+  "aiTestOk": "Connection works!",
+  "aiSettingsSaved": "AI settings saved",
+  "aiAskAi": "Ask AI with a photo"
 }

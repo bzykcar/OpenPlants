@@ -56,3 +56,7 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+# Signing material (never commit)
+/android/key.properties
+*.jks
+*.keystore

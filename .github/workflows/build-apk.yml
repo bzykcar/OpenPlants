@@ -1,0 +1,126 @@
+name: Build APK (OpenPlants AI)
+
+# Builds an installable, signed release APK and publishes it as a GitHub Release,
+# so it can be downloaded straight to the phone.
+#
+# Optional secret ANDROID_KEYSTORE_BASE64: base64 of a .jks keystore (alias "openplants",
+# store/key password "openplants"). With it, every build is signed with the same key and
+# installs as an update over the previous one. Without it, a throwaway key is generated
+# and the app has to be uninstalled before installing a newer build.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "docs/**"
+      - "**.md"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+
+      - name: Install Dart/Flutter dependencies
+        run: |
+          flutter config --jdk-dir="$JAVA_HOME"
+          flutter pub get
+
+      - name: Generate translations
+        run: flutter gen-l10n
+
+      - name: Analyze (informational)
+        continue-on-error: true
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Cache plant-identification model
+        id: model-cache
+        uses: actions/cache@v4
+        with:
+          path: assets/ml/plant-identification
+          key: plant-id-model-${{ hashFiles('scripts/requirements.txt', 'scripts/*.py', 'scripts/run_export.sh') }}
+
+      - name: Set up Python
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Export plant-identification model
+        if: steps.model-cache.outputs.cache-hit != 'true'
+        run: |
+          python3 -m venv scripts/.venv
+          source scripts/.venv/bin/activate
+          TORCH=$(grep '^torch==' scripts/requirements.txt)
+          VISION=$(grep '^torchvision==' scripts/requirements.txt)
+          pip install -q "$TORCH" "$VISION" --index-url https://download.pytorch.org/whl/cpu
+          pip install -q -r scripts/requirements.txt
+          deactivate
+          ./scripts/run_export.sh
+          ls -la assets/ml/plant-identification
+
+      - name: Prepare signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/openplants-ai.jks
+            echo "Using keystore from secret ANDROID_KEYSTORE_BASE64"
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret - using a throwaway key. Uninstall the old build before installing this one."
+            keytool -genkeypair -v -keystore android/app/openplants-ai.jks -alias openplants \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass openplants -keypass openplants -dname "CN=OpenPlants AI"
+          fi
+          cat > android/key.properties <<EOF
+          storePassword=openplants
+          keyPassword=openplants
+          keyAlias=openplants
+          storeFile=openplants-ai.jks
+          EOF
+
+      - name: Build release APK
+        run: flutter build apk --release --build-number=${{ github.run_number }}
+
+      - name: Rename APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk OpenPlants-AI-${{ github.run_number }}.apk
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OpenPlants-AI-${{ github.run_number }}
+          path: OpenPlants-AI-${{ github.run_number }}.apk
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: OpenPlants AI build ${{ github.run_number }}
+          body: |
+            Automatyczna kompilacja z commita ${{ github.sha }}.
+            Pobierz plik .apk poniżej i zainstaluj na telefonie.
+          files: OpenPlants-AI-${{ github.run_number }}.apk
+          make_latest: true
